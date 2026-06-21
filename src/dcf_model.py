@@ -25,8 +25,9 @@ TICKER = "NVDA"
 PROJECTION_YEARS = 10
 
 # WACC inputs — carried over from beta_and_wacc.py results
-WACC_REGRESSION_BETA = 0.1247   # 12.47%
-WACC_YFINANCE_BETA = 0.1419     # 14.19%
+WACC_REGRESSION_BETA = 0.1247      # 12.47% — 10-year daily regression beta
+WACC_REGRESSION_BETA_3Y = 0.1378   # 13.78% — 3-year daily regression beta
+WACC_YFINANCE_BETA = 0.1419        # 14.19% — yfinance reported beta
 WACC_AVERAGE = (WACC_REGRESSION_BETA + WACC_YFINANCE_BETA) / 2
 
 # -----------------------------
@@ -48,6 +49,12 @@ SCENARIOS = {
         "final_year_growth": 0.06,
         "terminal_growth": 0.030,
         "wacc": WACC_AVERAGE,
+    },
+    "Base (3-Year Beta)": {
+        "initial_growth": 0.25,
+        "final_year_growth": 0.06,
+        "terminal_growth": 0.030,
+        "wacc": WACC_REGRESSION_BETA_3Y,
     },
     "Optimistic": {
         "initial_growth": 0.35,
@@ -180,11 +187,12 @@ print(summary.round(2))
 # -----------------------------
 # Chart 1 — Implied Share Price by Scenario vs Current Price
 # -----------------------------
-plt.figure(figsize=(8, 5))
+plt.figure(figsize=(9, 5))
 scenario_names = list(results.keys())
 implied_prices = [results[s]["implied_share_price"] for s in scenario_names]
+bar_colors = ["#d62728", "#1f77b4", "#9467bd", "#2ca02c"]
 
-bars = plt.bar(scenario_names, implied_prices, color=["#d62728", "#1f77b4", "#2ca02c"])
+bars = plt.bar(scenario_names, implied_prices, color=bar_colors[:len(scenario_names)])
 for bar, price in zip(bars, implied_prices):
     plt.text(bar.get_x() + bar.get_width() / 2, price, f"${price:,.0f}",
               ha="center", va="bottom", fontsize=10)
@@ -196,6 +204,7 @@ if current_price:
 
 plt.title(f"{TICKER} — DCF Implied Share Price by Scenario")
 plt.ylabel("Implied Share Price (USD)")
+plt.xticks(rotation=10)
 plt.grid(True, axis="y")
 plt.tight_layout()
 plt.savefig(IMAGES_DIR / "dcf_scenario_comparison.png")

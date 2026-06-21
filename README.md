@@ -21,18 +21,22 @@ Financial Data API (yfinance)
      (balance_sheet_analysis.py)
         ↓
    Cost of Capital Estimation (beta_and_wacc.py)
-   - Beta via daily-return regression vs. S&P 500
+   - Beta via 10-year daily-return regression vs. S&P 500
+   - Beta via 3-year daily-return regression (isolates the AI-infrastructure era)
    - Beta as reported by yfinance
-   - WACC computed under both methodologies
+   - WACC computed under all three methodologies
         ↓
-   DCF Valuation — 3 Scenarios, 10-Year Horizon (dcf_model.py)
-   - Conservative / Base / Optimistic
+   DCF Valuation — 4 Scenarios, 10-Year Horizon (dcf_model.py)
+   - Conservative / Base / Base (3-Year Beta) / Optimistic
         ↓
    Sensitivity Analysis (sensitivity_analysis.py)
    - Implied share price across WACC × Terminal Growth grid
+        ↓
+   Analyst Consensus Comparison (analyst_consensus_comparison.py)
+   - DCF-implied prices vs. Wall Street price targets
 ```
 
-This is not a single script — it's a chain of five modules that each consume the previous step's output, mirroring how an actual equity research workflow is structured.
+This is not a single script — it's a chain of modules that each consume the previous step's output, mirroring how an actual equity research workflow is structured.
 
 ---
 
@@ -40,21 +44,32 @@ This is not a single script — it's a chain of five modules that each consume t
 
 **Financial health:** NVIDIA's balance sheet shows very low leverage (Debt-to-Equity fell from 0.54 in FY2023 to 0.07 in FY2026) and strong cash conversion (80–91% of net income converts to free cash flow). ROE peaked near 92% in FY2025 before moderating to 76% in FY2026 — exceptional capital efficiency, achieved with almost no debt financing.
 
-**Cost of capital:** NVIDIA's beta is estimated at **1.82** (10-year daily regression vs. S&P 500) or **2.20** (yfinance reported), producing a WACC range of **12.5%–14.2%** depending on methodology. The capital structure is over 99% equity-financed, so WACC is almost entirely driven by the cost of equity.
+**Cost of capital — three beta methodologies:**
 
-**DCF valuation (10-year horizon):**
+| Methodology | Beta | WACC |
+|---|---|---|
+| 10-year daily regression vs. S&P 500 | 1.82 | 12.47% |
+| 3-year daily regression vs. S&P 500 | 2.11 | 13.78% |
+| yfinance reported | 2.20 | 14.19% |
+
+The pattern is consistent: shorter, more recent windows produce a higher beta. This makes financial sense — NVIDIA's business has shifted structurally over the past decade, from a gaming/crypto-cyclical GPU maker to an AI infrastructure monopoly, and a 10-year window blends both eras into a single (lower) volatility estimate. The 3-year beta likely better reflects the risk profile of the business *as it exists today*. The capital structure is over 99% equity-financed, so WACC is almost entirely driven by the cost of equity regardless of methodology.
+
+**DCF valuation (10-year horizon, 4 scenarios):**
 
 | Scenario | Year 1 → Year 10 FCF Growth | Terminal Growth | WACC | Implied Share Price |
 |---|---|---|---|---|
-| Conservative | 15% → 4% | 2.5% | 14.2% | $57.87 |
-| Base | 25% → 6% | 3.0% | 13.3% | $98.70 |
-| Optimistic | 35% → 9% | 3.5% | 12.5% | $178.07 |
+| Conservative | 15% → 4% | 2.5% | 14.2% (yfinance beta) | $57.87 |
+| Base | 25% → 6% | 3.0% | 13.3% (avg. of 10yr & yfinance beta) | $98.70 |
+| Base (3-Year Beta) | 25% → 6% | 3.0% | 13.8% (3-year beta) | $93.83 |
+| Optimistic | 35% → 9% | 3.5% | 12.5% (10-year beta) | $178.07 |
 
 **Current market price: ~$210.69**
 
-**The central finding:** even the Optimistic scenario — which assumes aggressive but not unreasonable double-digit FCF growth sustained for a full decade — lands roughly 15% below the current market price. Under the Base scenario, the gap widens to over 50%. Sensitivity analysis confirms that **the growth assumption, not WACC or terminal growth, is the dominant driver of this valuation**: across the entire tested grid of WACC (11%–15%) and terminal growth (2.0%–4.25%) at the Base growth profile, no combination produces a price above $148 — still 30% short of market.
+**The central finding:** even the Optimistic scenario — which assumes aggressive but not unreasonable double-digit FCF growth sustained for a full decade — lands roughly 15% below the current market price. Under the Base scenario, the gap widens to over 50%, and using the more recent (arguably more representative) 3-year beta widens it further still — confirming that adopting the methodologically stronger beta makes NVIDIA look *more*, not less, expensive on a fundamentals basis. Sensitivity analysis confirms that **the growth assumption, not WACC or terminal growth, is the dominant driver of this valuation**: across the entire tested grid of WACC (11%–15%) and terminal growth (2.0%–4.25%) at the Base growth profile, no combination produces a price above $148 — still 30% short of market.
 
-This suggests the market is pricing in either (a) growth durability beyond the 10-year horizon modeled here, or (b) a premium that goes beyond what a traditional discounted cash flow framework captures — a live debate in how AI infrastructure companies are being valued in the current cycle.
+**Comparison against Wall Street consensus:** as of June 2026, the Wall Street analyst consensus on NVDA (62 analysts, "Strong Buy" rating) carries an average 12-month price target of **$298.93**, with a low of **$180** and a high of **$500**. Notably, this DCF's Optimistic scenario ($178.07) sits almost exactly at the *lowest* end of the Wall Street range — meaning even the most aggressive fundamentals-based scenario modeled here roughly matches the most bearish sell-side analyst, while the sell-side average assumes substantially more upside than a traditional DCF framework can justify from current financials alone.
+
+This suggests the market — and Wall Street analysts — are pricing in either (a) growth durability beyond the 10-year horizon modeled here, (b) margin and competitive-moat durability beyond what this model assumes, or (c) a premium that goes beyond what a traditional discounted cash flow framework captures — a live debate in how AI infrastructure companies are being valued in the current cycle.
 
 *Full methodology, assumptions, and caveats are documented in each module below.*
 
@@ -64,8 +79,9 @@ This suggests the market is pricing in either (a) growth durability beyond the 1
 
 ![DCF Scenario Comparison](images/dcf_scenario_comparison.png)
 ![Sensitivity Heatmap](images/dcf_sensitivity_heatmap.png)
+![DCF vs Wall Street Consensus](images/dcf_vs_analyst_consensus.png)
 
-*(Additional charts — revenue growth, margins, liquidity/solvency ratios, beta regression, FCF projections — are generated in `images/`.)*
+*(Additional charts — revenue growth, margins, liquidity/solvency ratios, beta regression, WACC comparison, FCF projections — are generated in `images/`.)*
 
 ---
 
@@ -85,11 +101,12 @@ pip install -r requirements.txt
 python src/data_loader.py
 
 # 4. Run the analysis modules in sequence
-python src/visualization.py          # Income statement: growth & margins
-python src/balance_sheet_analysis.py # Balance sheet & cash flow: liquidity, solvency, returns
-python src/beta_and_wacc.py          # Cost of capital: beta (2 methods) & WACC
-python src/dcf_model.py              # DCF valuation: 3 scenarios, 10-year horizon
-python src/sensitivity_analysis.py   # Sensitivity grid: WACC × Terminal Growth
+python src/visualization.py                  # Income statement: growth & margins
+python src/balance_sheet_analysis.py          # Balance sheet & cash flow: liquidity, solvency, returns
+python src/beta_and_wacc.py                   # Cost of capital: beta (3 methods) & WACC
+python src/dcf_model.py                       # DCF valuation: 4 scenarios, 10-year horizon
+python src/sensitivity_analysis.py            # Sensitivity grid: WACC × Terminal Growth
+python src/analyst_consensus_comparison.py    # DCF vs. Wall Street analyst consensus
 ```
 
 All charts are saved automatically to `images/`.
@@ -116,10 +133,11 @@ All charts are saved automatically to `images/`.
 
 Transparency on assumptions matters as much as the model itself:
 
-* **Beta divergence:** the 10-year daily regression beta (1.82) and yfinance's reported beta (2.20) likely differ due to estimation window — yfinance probably weights a shorter, more recent (and more volatile) period more heavily. Both are reported rather than picking one as "correct."
+* **Beta methodology and structural change:** three betas were calculated (10-year regression, 3-year regression, yfinance-reported) and consistently show that shorter, more recent windows produce a higher beta (1.82 → 2.11 → 2.20). This is consistent with NVIDIA's shift from a gaming/crypto-cyclical GPU maker to an AI infrastructure company — a 10-year window mixes both eras and likely understates current-era risk. The 3-year beta is treated as a credible alternative, not a replacement, and is carried through to a dedicated DCF scenario.
 * **Cost of debt** is calculated from FY2025 interest paid and total debt, as FY2026 interest data was not yet available from the data source at time of analysis.
 * **Risk-free rate (4.3%) and equity risk premium (4.5%)** are fixed approximations of prevailing 10-year Treasury yield and U.S. equity risk premium, not pulled live from a market data feed — a known simplification versus a production-grade system.
 * **Terminal value sensitivity:** in the Optimistic scenario, the present value of the terminal value represents roughly 57% of total enterprise value — a reminder that any DCF of a high-growth company is inherently a bet on assumptions about a distant, hard-to-predict future, not just near-term fundamentals.
+* **Wall Street consensus figures** ($298.93 average, $180–$500 range, 62 analysts) were sourced from public aggregators (S&P Global Market Intelligence / TipRanks, via stockanalysis.com) as of mid-June 2026 and are hardcoded in `analyst_consensus_comparison.py` — they will drift out of date and should be refreshed periodically rather than treated as live data.
 * **Data source:** all financials are sourced via `yfinance`, which is sufficient for portfolio-grade analysis but less rigorous than institutional data feeds (Bloomberg, FactSet, CapitalIQ) used in production research settings.
 
 ---
@@ -140,8 +158,9 @@ Transparency on assumptions matters as much as the model itself:
 
 ### ✅ Phase 3 — Valuation (Complete)
 - [x] 10-year revenue/FCF forecasting with growth fade
-- [x] Discounted Cash Flow (DCF) model — 3 scenarios (Conservative / Base / Optimistic)
+- [x] Discounted Cash Flow (DCF) model — 4 scenarios (Conservative / Base / Base 3-Year Beta / Optimistic)
 - [x] Sensitivity analysis (WACC × Terminal Growth grid)
+- [x] Benchmarking against Wall Street analyst consensus
 
 ### Phase 4 — Multi-Company Coverage
 - [ ] Extend pipeline to Microsoft, Alphabet, Amazon, Meta

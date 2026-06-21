@@ -47,12 +47,31 @@ returns_df = pd.DataFrame({
     "SP500": sp500_returns
 }).dropna()
 
+# Ensure the index is a proper datetime index (not strings) before any date filtering.
+# utc=True handles the fact that NVDA and S&P 500 price histories may carry
+# different timezone offsets when read back from CSV.
+returns_df.index = pd.to_datetime(returns_df.index, utc=True)
+
 # -----------------------------
-# Beta Method 1 — Regression (calculated by us)
+# Beta Method 1 — Regression (10-year, calculated by us)
 # -----------------------------
 covariance = returns_df["NVDA"].cov(returns_df["SP500"])
 market_variance = returns_df["SP500"].var()
 beta_regression = covariance / market_variance
+
+# -----------------------------
+# Beta Method 1b — Regression (3-year window)
+# -----------------------------
+# Rationale: NVIDIA's business has shifted structurally over the past 10 years —
+# from a gaming/crypto-cyclical GPU maker to an AI infrastructure company. A
+# 10-year beta blends both eras together. A 3-year window captures only the
+# recent AI-infrastructure era, which is arguably more representative of the
+# risk profile of the business today.
+three_years_ago = returns_df.index.max() - pd.DateOffset(years=3)
+returns_df_3y = returns_df[returns_df.index >= three_years_ago]
+covariance_3y = returns_df_3y["NVDA"].cov(returns_df_3y["SP500"])
+market_variance_3y = returns_df_3y["SP500"].var()
+beta_regression_3y = covariance_3y / market_variance_3y
 
 # -----------------------------
 # Beta Method 2 — yfinance reported beta
@@ -61,9 +80,10 @@ ticker_info = yf.Ticker(TICKER).info
 beta_yfinance = ticker_info.get("beta", None)
 
 # -----------------------------
-# Cost of Equity (CAPM) — both betas
+# Cost of Equity (CAPM) — all three betas
 # -----------------------------
 cost_of_equity_regression = RISK_FREE_RATE + beta_regression * MARKET_RISK_PREMIUM
+cost_of_equity_regression_3y = RISK_FREE_RATE + beta_regression_3y * MARKET_RISK_PREMIUM
 cost_of_equity_yfinance = (
     RISK_FREE_RATE + beta_yfinance * MARKET_RISK_PREMIUM
     if beta_yfinance is not None else None
@@ -97,10 +117,15 @@ weight_equity = equity_value / total_capital
 weight_debt = debt_value / total_capital
 
 # -----------------------------
-# WACC — calculated for both betas
+# WACC — calculated for all three betas
 # -----------------------------
 wacc_regression = (
     weight_equity * cost_of_equity_regression
+    + weight_debt * cost_of_debt_aftertax
+)
+
+wacc_regression_3y = (
+    weight_equity * cost_of_equity_regression_3y
     + weight_debt * cost_of_debt_aftertax
 )
 
@@ -121,23 +146,26 @@ print(f"Market Risk Premium:          {MARKET_RISK_PREMIUM:.2%}")
 print(f"Tax Rate:                     {TAX_RATE:.2%}")
 print(f"Latest Fiscal Year Used:      {latest_year}")
 print("-" * 60)
-print(f"Beta (Regression, daily):     {beta_regression:.3f}")
-print(f"Beta (yfinance reported):     {beta_yfinance:.3f}" if beta_yfinance else "Beta (yfinance reported): N/A")
+print(f"Beta (Regression, 10-year daily):  {beta_regression:.3f}")
+print(f"Beta (Regression, 3-year daily):   {beta_regression_3y:.3f}")
+print(f"Beta (yfinance reported):          {beta_yfinance:.3f}" if beta_yfinance else "Beta (yfinance reported): N/A")
 print("-" * 60)
-print(f"Cost of Equity (Regression):  {cost_of_equity_regression:.2%}")
+print(f"Cost of Equity (10-year Beta):      {cost_of_equity_regression:.2%}")
+print(f"Cost of Equity (3-year Beta):       {cost_of_equity_regression_3y:.2%}")
 if cost_of_equity_yfinance:
-    print(f"Cost of Equity (yfinance):    {cost_of_equity_yfinance:.2%}")
-print(f"Cost of Debt (pre-tax):       {cost_of_debt_pretax:.2%}")
-print(f"Cost of Debt (after-tax):     {cost_of_debt_aftertax:.2%}")
+    print(f"Cost of Equity (yfinance Beta):     {cost_of_equity_yfinance:.2%}")
+print(f"Cost of Debt (pre-tax):             {cost_of_debt_pretax:.2%}")
+print(f"Cost of Debt (after-tax):           {cost_of_debt_aftertax:.2%}")
 print("-" * 60)
 print(f"Equity Value Used:            ${equity_value:,.0f}")
 print(f"Debt Value Used:               ${debt_value:,.0f}")
 print(f"Weight of Equity:              {weight_equity:.2%}")
 print(f"Weight of Debt:                {weight_debt:.2%}")
 print("-" * 60)
-print(f"WACC (using Regression Beta):  {wacc_regression:.2%}")
+print(f"WACC (10-year Regression Beta):     {wacc_regression:.2%}")
+print(f"WACC (3-year Regression Beta):      {wacc_regression_3y:.2%}")
 if wacc_yfinance:
-    print(f"WACC (using yfinance Beta):    {wacc_yfinance:.2%}")
+    print(f"WACC (yfinance Beta):               {wacc_yfinance:.2%}")
 print("=" * 60)
 
 # -----------------------------
@@ -160,22 +188,25 @@ plt.savefig(IMAGES_DIR / "beta_regression.png")
 plt.close()
 
 # -----------------------------
-# Chart — WACC Comparison
+# Chart — WACC Comparison (3 methodologies)
 # -----------------------------
-wacc_labels = ["WACC (Regression Beta)"]
-wacc_values = [wacc_regression]
+wacc_labels = ["WACC (10-Year Beta)", "WACC (3-Year Beta)"]
+wacc_values = [wacc_regression, wacc_regression_3y]
+wacc_colors = ["#1f77b4", "#2ca02c"]
 
 if wacc_yfinance:
     wacc_labels.append("WACC (yfinance Beta)")
     wacc_values.append(wacc_yfinance)
+    wacc_colors.append("#ff7f0e")
 
-plt.figure(figsize=(6, 5))
-bars = plt.bar(wacc_labels, wacc_values, color=["#1f77b4", "#ff7f0e"])
+plt.figure(figsize=(7, 5))
+bars = plt.bar(wacc_labels, wacc_values, color=wacc_colors)
 for bar, value in zip(bars, wacc_values):
     plt.text(bar.get_x() + bar.get_width() / 2, value + 0.001, f"{value:.2%}",
               ha="center", va="bottom", fontsize=10)
-plt.title("NVIDIA WACC — Regression Beta vs yfinance Beta")
+plt.title("NVIDIA WACC — 10-Year vs 3-Year Regression Beta vs yfinance Beta")
 plt.ylabel("WACC")
+plt.xticks(rotation=10)
 plt.grid(True, axis="y")
 plt.tight_layout()
 plt.savefig(IMAGES_DIR / "wacc_comparison.png")
