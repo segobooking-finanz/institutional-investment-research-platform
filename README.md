@@ -1,6 +1,3 @@
-# institutional-investment-research-platform
-Institutional-grade investment research platform for equity valuation, financial statement analysis, forecasting, DCF modeling, Monte Carlo simulations and investment decision support using Python, SQL and financial data APIs.
-
 # Institutional Investment Research Platform
 
 An equity research and valuation platform that replicates the analytical workflow used by investment analysts, asset managers and hedge funds — from financial statement analysis to forecasting, DCF valuation and risk assessment.
