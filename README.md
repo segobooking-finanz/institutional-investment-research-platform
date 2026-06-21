@@ -163,9 +163,9 @@ Transparency on assumptions matters as much as the model itself:
 - [ ] PostgreSQL database design for multi-company storage
 
 ### ✅ Phase 2 — Cost of Capital (Complete)
-- [x] Beta estimation via daily-return regression vs. S&P 500
+- [x] Beta estimation via 10-year and 3-year daily-return regression vs. S&P 500
 - [x] Beta cross-check via yfinance reported figure
-- [x] WACC computed under both methodologies
+- [x] WACC computed under all three methodologies
 
 ### ✅ Phase 3 — Valuation (Complete)
 - [x] 10-year revenue/FCF forecasting with growth fade
@@ -193,15 +193,16 @@ Transparency on assumptions matters as much as the model itself:
 
 ## Investment Workflow
 
-1. Collect financial statements (income statement, balance sheet, cash flow, price history)
+1. Collect financial statements (income statement, balance sheet, cash flow, price history, S&P 500 benchmark)
 2. Clean and validate data
 3. Analyze financial performance (margins, growth, liquidity, solvency, returns)
-4. Estimate cost of capital (beta, WACC) under multiple methodologies
+4. Estimate cost of capital (beta, WACC) under three competing methodologies
 5. Forecast free cash flows under multiple growth scenarios
 6. Estimate intrinsic value using DCF
 7. Stress-test valuation via sensitivity analysis
-8. *(Planned)* Run Monte Carlo simulations for full valuation distribution
-9. *(Planned)* Generate investment recommendation
+8. Benchmark against Wall Street analyst consensus
+9. Quantify valuation uncertainty via Monte Carlo simulation
+10. *(Planned)* Generate a probability-weighted investment recommendation
 
 ---
 
