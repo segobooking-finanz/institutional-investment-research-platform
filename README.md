@@ -34,6 +34,10 @@ Financial Data API (yfinance)
         ↓
    Analyst Consensus Comparison (analyst_consensus_comparison.py)
    - DCF-implied prices vs. Wall Street price targets
+        ↓
+   Monte Carlo Simulation (monte_carlo.py)
+   - 10,000-trial probabilistic DCF
+   - Probability that intrinsic value exceeds market price
 ```
 
 This is not a single script — it's a chain of modules that each consume the previous step's output, mirroring how an actual equity research workflow is structured.
@@ -71,6 +75,10 @@ The pattern is consistent: shorter, more recent windows produce a higher beta. T
 
 This suggests the market — and Wall Street analysts — are pricing in either (a) growth durability beyond the 10-year horizon modeled here, (b) margin and competitive-moat durability beyond what this model assumes, or (c) a premium that goes beyond what a traditional discounted cash flow framework captures — a live debate in how AI infrastructure companies are being valued in the current cycle.
 
+**Monte Carlo simulation (10,000 trials):** rather than relying on four discrete scenarios, a Monte Carlo simulation draws WACC, FCF growth (Year 1 and Year 10), and terminal growth from probability distributions anchored to the ranges explored above, then runs the full DCF 10,000 times. The resulting distribution of implied share prices has a median of **$97.29** (mean $100.36, std. dev. $24.76), with a 10th–90th percentile range of **$71.84–$132.99**. Under this framework, **only 0.1% of simulated outcomes exceed the current market price of $210.69** — meaning the market price sits far into the right tail of the distribution of fundamentally-justified values modeled here.
+
+*Important caveat: this does not "prove" NVIDIA is overvalued with 99.9% confidence — it shows that, within this specific 10-year DCF framework (bounded terminal growth, beta-derived WACC, historically-anchored growth fade), almost no combination of reasonable inputs reaches the current price. The gap is better read as evidence that the market is pricing in either growth durability beyond this model's 10-year horizon, or a structural premium that a traditional DCF is not designed to capture — not as a forecast of price direction.*
+
 *Full methodology, assumptions, and caveats are documented in each module below.*
 
 ---
@@ -80,6 +88,7 @@ This suggests the market — and Wall Street analysts — are pricing in either 
 ![DCF Scenario Comparison](images/dcf_scenario_comparison.png)
 ![Sensitivity Heatmap](images/dcf_sensitivity_heatmap.png)
 ![DCF vs Wall Street Consensus](images/dcf_vs_analyst_consensus.png)
+![Monte Carlo Distribution](images/monte_carlo_distribution.png)
 
 *(Additional charts — revenue growth, margins, liquidity/solvency ratios, beta regression, WACC comparison, FCF projections — are generated in `images/`.)*
 
@@ -107,6 +116,7 @@ python src/beta_and_wacc.py                   # Cost of capital: beta (3 methods
 python src/dcf_model.py                       # DCF valuation: 4 scenarios, 10-year horizon
 python src/sensitivity_analysis.py            # Sensitivity grid: WACC × Terminal Growth
 python src/analyst_consensus_comparison.py    # DCF vs. Wall Street analyst consensus
+python src/monte_carlo.py                     # 10,000-trial Monte Carlo simulation
 ```
 
 All charts are saved automatically to `images/`.
@@ -137,6 +147,7 @@ Transparency on assumptions matters as much as the model itself:
 * **Cost of debt** is calculated from FY2025 interest paid and total debt, as FY2026 interest data was not yet available from the data source at time of analysis.
 * **Risk-free rate (4.3%) and equity risk premium (4.5%)** are fixed approximations of prevailing 10-year Treasury yield and U.S. equity risk premium, not pulled live from a market data feed — a known simplification versus a production-grade system.
 * **Terminal value sensitivity:** in the Optimistic scenario, the present value of the terminal value represents roughly 57% of total enterprise value — a reminder that any DCF of a high-growth company is inherently a bet on assumptions about a distant, hard-to-predict future, not just near-term fundamentals.
+* **Monte Carlo distribution choices:** WACC, FCF growth, and terminal growth are each modeled as Normal distributions (terminal growth additionally truncated to 2.0%–4.0%) anchored to the ranges explored in the four deterministic scenarios. A simulation-level safety constraint caps terminal growth at least 1 percentage point below that simulation's own WACC draw, preventing the Gordon Growth Model from mathematically exploding on extreme draws. A fixed random seed (42) makes results reproducible across runs.
 * **Wall Street consensus figures** ($298.93 average, $180–$500 range, 62 analysts) were sourced from public aggregators (S&P Global Market Intelligence / TipRanks, via stockanalysis.com) as of mid-June 2026 and are hardcoded in `analyst_consensus_comparison.py` — they will drift out of date and should be refreshed periodically rather than treated as live data.
 * **Data source:** all financials are sourced via `yfinance`, which is sufficient for portfolio-grade analysis but less rigorous than institutional data feeds (Bloomberg, FactSet, CapitalIQ) used in production research settings.
 
@@ -167,9 +178,10 @@ Transparency on assumptions matters as much as the model itself:
 - [ ] Comparative analysis across AI infrastructure vs. AI application companies
 - [ ] Sector-level benchmarking (margins, capex intensity, R&D spend)
 
-### Phase 5 — Risk Analytics
-- [ ] Monte Carlo simulation for intrinsic value distribution
-- [ ] Probability-weighted scenario outcomes
+### ✅ Phase 5 — Risk Analytics (Complete)
+- [x] Monte Carlo simulation for intrinsic value distribution (10,000 trials)
+- [x] Probability that intrinsic value exceeds current market price
+- [ ] Probability-weighted scenario outcomes (bull/base/bear blended)
 - [ ] Risk scoring framework
 
 ### Phase 6 — Reporting & Delivery
