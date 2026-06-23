@@ -160,7 +160,6 @@ Transparency on assumptions matters as much as the model itself:
 - [x] Revenue growth, gross/operating/net margin calculations
 - [x] Liquidity, solvency, returns, and cash efficiency ratios
 - [x] Automated chart generation
-- [ ] PostgreSQL database design for multi-company storage
 
 ### ✅ Phase 2 — Cost of Capital (Complete)
 - [x] Beta estimation via 10-year and 3-year daily-return regression vs. S&P 500
@@ -173,21 +172,9 @@ Transparency on assumptions matters as much as the model itself:
 - [x] Sensitivity analysis (WACC × Terminal Growth grid)
 - [x] Benchmarking against Wall Street analyst consensus
 
-### Phase 4 — Multi-Company Coverage
-- [ ] Extend pipeline to Microsoft, Alphabet, Amazon, Meta
-- [ ] Comparative analysis across AI infrastructure vs. AI application companies
-- [ ] Sector-level benchmarking (margins, capex intensity, R&D spend)
-
-### ✅ Phase 5 — Risk Analytics (Complete)
+### ✅ Phase 4 — Risk Analytics (Complete)
 - [x] Monte Carlo simulation for intrinsic value distribution (10,000 trials)
 - [x] Probability that intrinsic value exceeds current market price
-- [ ] Probability-weighted scenario outcomes (bull/base/bear blended)
-- [ ] Risk scoring framework
-
-### Phase 6 — Reporting & Delivery
-- [ ] Interactive Streamlit dashboard
-- [ ] Automated PDF investment reports
-- [ ] Investment recommendation engine
 
 ---
 
